@@ -47,7 +47,9 @@ static const std::map<std::string, int> s_mapPackagesDirectories =
     { "/System/Applications", PKG},
     { "/System/Applications/Utilities", PKG},
     { "/System/Library/CoreServices", PKG},
-    { "/usr/local/Cellar", BREW},
+    { "/private/var/db/receipts", PKG},
+    { "/Library/Apple/System/Library/Receipts", PKG},
+    { "/usr/local/Cellar", BREW}
 };
 
 static nlohmann::json getProcessInfo(const ProcessTaskInfo& taskInfo, const pid_t pid)
@@ -176,7 +178,7 @@ static void getPackagesFromPath(const std::string& pkgDirectory, const int pkgTy
     {
         if (PKG == pkgType)
         {
-            if (Utils::endsWith(package, ".app"))
+            if (Utils::endsWith(package, ".app") || Utils::endsWith(package, ".plist"))
             {
                 nlohmann::json jsPackage;
                 FactoryPackageFamilyCreator<OSType::BSDBASED>::create(std::make_pair(PackageContext{pkgDirectory, package, ""}, pkgType))->buildPackageData(jsPackage);
