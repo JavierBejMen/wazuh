@@ -291,7 +291,6 @@ def down_env():
     os.chdir(current_path)
 
 
-
 def check_health(interval: int = 10, node_type: str = 'manager', agents: list = None,
                  only_check_master_health: bool = False):
     """Check the Wazuh nodes health.
@@ -474,6 +473,12 @@ def save_logs(test_name: str):
                 shell=True)
         except subprocess.CalledProcessError:
             continue
+
+    with open(os.path.join(docker_log_path, 'nginx-lb.log', mode='w')) as f_log:
+        current_process = subprocess.Popen(
+                ["docker", "logs", "nginx-lb"],
+                stdout=f_log, stderr=subprocess.STDOUT, universal_newlines=True)
+        current_process.wait()
 
 
 @pytest.fixture(scope='session', autouse=True)
