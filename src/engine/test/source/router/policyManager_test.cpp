@@ -79,15 +79,14 @@ TEST_F(PolicyManager, policyFlow)
         err = manager.addPolicy("policy/env_3/0");
         ASSERT_FALSE(err.has_value()) << err.value().message;
 
-
         // Create event to process
         auto pathDeco = json::Json::formatJsonPath("~decoder");
 
-        auto e1 = base::parseEvent::parseOssecEvent(aux::sampleEventsStr[0]);
+        auto e1 = base::parseEvent::parseWazuhEvent(aux::sampleEventsStr[0]);
         ASSERT_FALSE(e1->exists(pathDeco));
-        auto e2 = base::parseEvent::parseOssecEvent(aux::sampleEventsStr[1]);
+        auto e2 = base::parseEvent::parseWazuhEvent(aux::sampleEventsStr[1]);
         ASSERT_FALSE(e2->exists(pathDeco));
-        auto e3 = base::parseEvent::parseOssecEvent(aux::sampleEventsStr[2]);
+        auto e3 = base::parseEvent::parseWazuhEvent(aux::sampleEventsStr[2]);
         ASSERT_FALSE(e3->exists(pathDeco));
 
         // Process event
@@ -115,7 +114,7 @@ TEST_F(PolicyManager, policyFlow)
         ASSERT_STREQ(err.value().message.c_str(), "Policy 'policy/env_1/0' does not exist");
 
         err = manager.deletePolicy("policy/env_2/0");
-        ASSERT_FALSE(err.has_value()) << err.value().message;// Process event
+        ASSERT_FALSE(err.has_value()) << err.value().message; // Process event
 
         err = manager.forwardEvent("policy/env_2/0", i, e2);
         ASSERT_TRUE(err.has_value());
@@ -127,7 +126,6 @@ TEST_F(PolicyManager, policyFlow)
         err = manager.forwardEvent("policy/env_3/0", i, e3);
         ASSERT_TRUE(err.has_value());
         ASSERT_STREQ(err.value().message.c_str(), "Policy 'policy/env_3/0' does not exist");
-
     }
 }
 

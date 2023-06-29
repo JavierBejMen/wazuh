@@ -62,7 +62,7 @@ TEST_F(RuntimeEnvironment, build_2_times)
 TEST_F(RuntimeEnvironment, processEvent_not_built)
 {
     auto policy = std::make_shared<router::RuntimePolicy>(env_1);
-    auto e = base::parseEvent::parseOssecEvent(aux::sampleEventsStr[0]);
+    auto e = base::parseEvent::parseWazuhEvent(aux::sampleEventsStr[0]);
     auto error = policy->processEvent(e);
     ASSERT_TRUE(error.has_value());
     ASSERT_STREQ(error.value().message.c_str(), "Policy 'policy/env_1/0' is not built");
@@ -75,7 +75,7 @@ TEST_F(RuntimeEnvironment, processEvent_1_event)
     auto error = policy->build(builder);
     ASSERT_FALSE(error.has_value()) << error.value().message;
 
-    auto e = base::parseEvent::parseOssecEvent(aux::sampleEventsStr[0]);
+    auto e = base::parseEvent::parseWazuhEvent(aux::sampleEventsStr[0]);
 
     // Send event
     auto decoderPath = json::Json::formatJsonPath("~decoder");
@@ -96,21 +96,21 @@ TEST_F(RuntimeEnvironment, processEvent_30_event)
 
     for (std::size_t i = 0; i < 30; i += 3)
     {
-        auto e = base::parseEvent::parseOssecEvent(aux::sampleEventsStr[i % 3]);
+        auto e = base::parseEvent::parseWazuhEvent(aux::sampleEventsStr[i % 3]);
         // Send event
         auto result = policy->processEvent(e);
         ASSERT_FALSE(result) << result.value().message;
         ASSERT_TRUE(e->exists(decoderPath) && e->isString(decoderPath)) << e->prettyStr();
         ASSERT_EQ(e->getString(decoderPath).value(), "deco_1") << e->prettyStr();
 
-        e = base::parseEvent::parseOssecEvent(aux::sampleEventsStr[(i + 1) % 3]);
+        e = base::parseEvent::parseWazuhEvent(aux::sampleEventsStr[(i + 1) % 3]);
         // Send event
         result = policy->processEvent(e);
         ASSERT_FALSE(result) << result.value().message;
         ASSERT_TRUE(e->exists(decoderPath) && e->isString(decoderPath)) << e->prettyStr();
         ASSERT_EQ(e->getString(decoderPath).value(), "deco_2") << e->prettyStr();
 
-        e = base::parseEvent::parseOssecEvent(aux::sampleEventsStr[(i + 2) % 3]);
+        e = base::parseEvent::parseWazuhEvent(aux::sampleEventsStr[(i + 2) % 3]);
         // Send event
         result = policy->processEvent(e);
         ASSERT_FALSE(result) << result.value().message;

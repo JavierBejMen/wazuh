@@ -1,10 +1,10 @@
 #include "routerAuxiliarFunctions.hpp"
 #include <builders/baseHelper.hpp>
+#include <defs/idefinitions.hpp>
 #include <register.hpp>
 #include <router/router.hpp>
-#include <store/drivers/fileDriver.hpp>
-#include <defs/idefinitions.hpp>
 #include <schemf/mocks/emptySchema.hpp>
+#include <store/drivers/fileDriver.hpp>
 namespace aux
 {
 
@@ -58,7 +58,7 @@ base::Event createFakeMessage(std::optional<std::string> msgOpt)
 
     auto msgStr = msgOpt.value_or("1:127.0.0.1:Fake message");
 
-    return base::parseEvent::parseOssecEvent(msgStr);
+    return base::parseEvent::parseWazuhEvent(msgStr);
 }
 
 std::shared_ptr<store::IStore> getFakeStore()
@@ -68,4 +68,5 @@ std::shared_ptr<store::IStore> getFakeStore()
     store->del(router::ROUTES_TABLE_NAME);
     return store;
 }
+
 } // namespace aux
