@@ -17,7 +17,6 @@ jobs:
       # Build wazuh server for linux.
       - name: Build wazuh server for linux
         run: |
-          rm -rf src/VERSION
           make deps -C src TARGET=server -j2
           make -C src TARGET=server -j2
       # Install wazuh server for linux.
@@ -49,7 +48,7 @@ jobs:
           echo "" >> ./etc/preloaded-vars.conf
           echo 'USER_AUTO_START="n"' >> ./etc/preloaded-vars.conf
           echo "" >> ./etc/preloaded-vars.conf
-          ./install.sh
+          sh install.sh
           rm ./etc/preloaded-vars.conf
       # Download and install integration tests framework.
       - name: Download and install integration tests framework
