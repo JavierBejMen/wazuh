@@ -48,7 +48,7 @@ jobs:
           echo "" >> ./etc/preloaded-vars.conf
           echo 'USER_AUTO_START="n"' >> ./etc/preloaded-vars.conf
           echo "" >> ./etc/preloaded-vars.conf
-          sh install.sh
+          sudo sh install.sh
           rm ./etc/preloaded-vars.conf
       # Download and install integration tests framework.
       - name: Download and install integration tests framework
