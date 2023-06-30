@@ -347,6 +347,29 @@ class WazuhIntegration:
 
         return sts_client
 
+    def event_should_be_skipped(self, event_):
+        def _check_recursive(json_item=None, nested_field: str = '', regex: str = ''):
+            field_list = nested_field.split('.', 1)
+            try:
+                expression_to_evaluate = json_item[field_list[0]]
+            except TypeError:
+                if isinstance(json_item, list):
+                    return any(_check_recursive(i, field_list[0], regex=regex) for i in json_item)
+                return False
+            except KeyError:
+                return False
+            if len(field_list) == 1:
+                def check_regex(exp):
+                    try:
+                        return re.match(regex, exp) is not None
+                    except TypeError:
+                        return isinstance(exp, list) and any(check_regex(ex) for ex in exp)
+
+                return check_regex(expression_to_evaluate)
+            return _check_recursive(expression_to_evaluate, field_list[1], regex=regex)
+        return self.discard_field and self.discard_regex \
+            and _check_recursive(event_, nested_field=self.discard_field, regex=self.discard_regex)
+
     def send_msg(self, msg, dump_json=True):
         """
         Sends an AWS event to the Wazuh Queue
@@ -981,33 +1004,10 @@ class AWSBucket(WazuhIntegration):
         self.send_msg(event_msg)
 
     def iter_events(self, event_list, log_key, aws_account_id):
-        def _check_recursive(json_item=None, nested_field: str = '', regex: str = ''):
-            field_list = nested_field.split('.', 1)
-            try:
-                expression_to_evaluate = json_item[field_list[0]]
-            except TypeError:
-                if isinstance(json_item, list):
-                    return any(_check_recursive(i, field_list[0], regex=regex) for i in json_item)
-                return False
-            except KeyError:
-                return False
-            if len(field_list) == 1:
-                def check_regex(exp):
-                    try:
-                        return re.match(regex, exp) is not None
-                    except TypeError:
-                        return isinstance(exp, list) and any(check_regex(ex) for ex in exp)
-
-                return check_regex(expression_to_evaluate)
-            return _check_recursive(expression_to_evaluate, field_list[1], regex=regex)
-
-        def _event_should_be_skipped(event_):
-            return self.discard_field and self.discard_regex \
-                and _check_recursive(event_, nested_field=self.discard_field, regex=self.discard_regex)
 
         if event_list is not None:
             for event in event_list:
-                if _event_should_be_skipped(event):
+                if self.event_should_be_skipped(event):
                     debug(f'+++ The "{self.discard_regex.pattern}" regex found a match in the "{self.discard_field}" '
                           f'field. The event will be skipped.', 2)
                     continue
@@ -2562,10 +2562,14 @@ class AWSInspector(AWSService):
         """
         if len(arn_list) != 0:
             response = self.client.describe_findings(findingArns=arn_list)['findings']
-            self.sent_events += len(response)
             debug(f"+++ Processing {len(response)} events", 3)
             for elem in response:
+                if self.event_should_be_skipped(elem):
+                    debug(f'+++ The "{self.discard_regex.pattern}" regex found a match in the "{self.discard_field}" '
+                          f'field. The event will be skipped.', 2)
+                    continue
                 self.send_msg(self.format_message(elem))
+                self.sent_events += 1
 
     def get_alerts(self):
         self.init_db(self.sql_create_table.format(table_name=self.db_table_name))
@@ -2872,6 +2876,7 @@ class AWSCloudWatchLogs(AWSService):
         A dict containing the Token for the next set of logs, the timestamp of the first fetched log and the timestamp
         of the latest one.
         """
+        sent_events = 0
         response = None
         min_start_time = start_time
         max_end_time = end_time if end_time is not None else start_time
@@ -2908,9 +2913,25 @@ class AWSCloudWatchLogs(AWSService):
             if response['events']:
                 debug('+++ Sending events to Analysisd...', 1)
                 for event in response['events']:
-                    debug('The message is "{}"'.format(event['message']), 3)
+                    event_msg = event['message']
+                    try:
+                        json_event = json.loads(event_msg)
+                        if self.event_should_be_skipped(json_event):
+                            debug(
+                                f'+++ The "{self.discard_regex.pattern}" regex found a match in the "{self.discard_field}" '
+                                f'field. The event will be skipped.', 2)
+                            continue
+                    except ValueError:
+                        # event_msg is not a JSON object, check if discard_regex.pattern matches the given string
+                        debug(f"+++ Retrieved log event is not a JSON object.", 3)
+                        if re.match(self.discard_regex, event_msg):
+                            debug(
+                                f'+++ The "{self.discard_regex.pattern}" regex found a match. The event will be skipped.', 2)
+                            continue
+                    debug('The message is "{}"'.format(event_msg), 3)
                     debug('The message\'s timestamp is {}'.format(event["timestamp"]), 3)
-                    self.send_msg(event['message'], dump_json=False)
+                    self.send_msg(event_msg, dump_json=False)
+                    sent_events += 1
 
                     if min_start_time is None:
                         min_start_time = event['timestamp']
@@ -2921,7 +2942,10 @@ class AWSCloudWatchLogs(AWSService):
                         max_end_time = event['timestamp']
                     elif event['timestamp'] > max_end_time:
                         max_end_time = event['timestamp']
-                debug(f"+++ Sent {len(response['events'])} events to Analysisd", 1)
+                if sent_events:
+                    debug(f"+++ Sent {sent_events} events to Analysisd", 1)
+                else:
+                    debug(f'+++ There are no new events in the "{log_group}" group', 1)
 
         return {'token': token, 'start_time': min_start_time, 'end_time': max_end_time}
 
