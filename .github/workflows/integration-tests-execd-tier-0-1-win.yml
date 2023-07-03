@@ -77,7 +77,7 @@ jobs:
           path: C:\shared_libraries\
       - name: Install wazuh
         run: |
-          .\wazuh-agent-4.4.4-1.msi /q WAZUH_MANAGER="10.0.0.2"
+          C:\shared_libraries\wazuh-agent.exe /q WAZUH_MANAGER="10.0.0.2"
       # Download and install integration tests framework.
       - name: Download and install integration tests framework
         run: |
