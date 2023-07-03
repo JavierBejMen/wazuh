@@ -481,7 +481,14 @@ int wm_aws_read(const OS_XML *xml, xml_node **nodes, wmodule *module)
                             free(cur_service->discard_regex);
                             os_strdup(children[j]->content, cur_service->discard_regex);
                         } else {
-                            mwarn("Required attribute '%s' is missing in '%s'. No event will be skipped.", XML_DISCARD_FIELD, XML_DISCARD_REGEX);
+                            if(strcmp(*nodes[i]->values, CLOUDWATCHLOGS_SERVICE_TYPE)== 0){
+                                mwarn("Required attribute '%s' is missing in '%s' although CloudWatch Logs admits only the regex parameter, be aware.", XML_DISCARD_FIELD, XML_DISCARD_REGEX);
+                                free(cur_service->discard_regex);
+                                os_strdup(children[j]->content, cur_service->discard_regex);
+                            } else {
+                                mwarn("Required attribute '%s' is missing in '%s'. No event will be skipped.", XML_DISCARD_FIELD, XML_DISCARD_REGEX);
+                            }
+
                         }
                     } else {
                         mwarn("No value was provided for '%s'. No event will be skipped.", XML_DISCARD_REGEX);
