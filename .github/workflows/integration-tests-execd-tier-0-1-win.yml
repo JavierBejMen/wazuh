@@ -1,4 +1,4 @@
-name: Execd integration tests tier 0 and 1
+name: Execd integration tests tier 0 and 1 on Windows
 
 on:
   pull_request:
@@ -23,6 +23,7 @@ jobs:
       - name: Copy libraries
         run: |
           mkdir -p src/shared_libraries
+          cp src/win32/wazuh-agent.exe src/shared_libraries/
           cp src/libwazuhext.dll src/shared_libraries/
           cp src/win32/libgcc_s_dw2-1.dll src/shared_libraries/
           cp src/win32/libstdc++-6.dll src/shared_libraries/
@@ -69,6 +70,14 @@ jobs:
         with:
           python-version-file: ".github/workflows/.python-version"
           architecture: x64
+      - name: Download Artifact shared_libraries
+        uses: actions/download-artifact@v3
+        with:
+          name: shared_libraries
+          path: C:\shared_libraries\
+      - name: Install wazuh
+        run: |
+          .\wazuh-agent-4.4.4-1.msi /q WAZUH_MANAGER="10.0.0.2"
       # Download and install integration tests framework.
       - name: Download and install integration tests framework
         run: |
