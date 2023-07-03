@@ -3,7 +3,7 @@ name: Execd integration tests tier 0 and 1
 on:
   pull_request:
     paths:
-        - ".github/workflows/integration-tests-execd-tier-0-1.yml"
+        - ".github/workflows/integration-tests-execd-tier-0-1-lin.yml"
         - "src/execd/**"
         - "src/Makefile"
         - "tests/integration/conftest.py"

@@ -1,0 +1,85 @@
+name: Execd integration tests tier 0 and 1
+
+on:
+  pull_request:
+    paths:
+        - ".github/workflows/integration-tests-execd-tier-0-1-win.yml"
+        - "src/execd/**"
+        - "src/Makefile"
+        - "tests/integration/conftest.py"
+        - "tests/integration/test_execd/**"
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Install mingw
+        run: sudo apt install gcc-mingw-w64 g++-mingw-w64-i686 g++-mingw-w64-x86-64 nsis -y
+      - name: make deps
+        run: make -C src deps TARGET=winagent -j2
+      - name: make
+        run: make -C src TARGET=winagent -j2
+        # Make folder and upload as artifacts.
+      - name: Copy libraries
+        run: |
+          mkdir -p src/shared_libraries
+          cp src/libwazuhext.dll src/shared_libraries/
+          cp src/win32/libgcc_s_dw2-1.dll src/shared_libraries/
+          cp src/win32/libstdc++-6.dll src/shared_libraries/
+          cp src/win32/libwinpthread-1.dll src/shared_libraries/
+      # Upload build artifacts for the shared libraries.
+      - name: Upload Artifact shared_libraries
+        uses: actions/upload-artifact@v3
+        with:
+          name: shared_libraries
+          path: src/shared_libraries
+      # Upload build artifacts for the data provider.
+      - name: Upload Artifact data_provider
+        uses: actions/upload-artifact@v3
+        with:
+          name: data_provider
+          path: src/data_provider/build/bin
+      # Upload build artifacts for dbsync.
+      - name: Upload Artifact dbsync
+        uses: actions/upload-artifact@v3
+        with:
+          name: dbsync
+          path: src/shared_modules/dbsync/build/bin
+      # Upload build artifacts for rsync.
+      - name: Upload Artifact rsync
+        uses: actions/upload-artifact@v3
+        with:
+          name: rsync
+          path: src/shared_modules/rsync/build/bin
+      # Upload build artifacts for syscollector.
+      - name: Upload Artifact syscollector
+        uses: actions/upload-artifact@v3
+        with:
+          name: syscollector
+          path: src/wazuh_modules/syscollector/build/bin
+
+  run-on-windows:
+    needs: build
+    runs-on: windows-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version-file: ".github/workflows/.python-version"
+          architecture: x64
+      # Download and install integration tests framework.
+      - name: Download and install integration tests framework
+        run: |
+          $BRANCH_NAME = "main"
+          if ((git ls-remote --heads https://github.com/wazuh/qa-integration-framework.git $env:GITHUB_HEAD_REF) -ne "X") {
+              $BRANCH_NAME = $env:GITHUB_HEAD_REF
+          }
+          pip install qa-integration-framework/
+          rm -rf qa-integration-framework/
+      # Run execd integration tests.
+      - name: Run execd integration tests
+        run: |
+          cd tests/integration
+          python -m pytest --tier 0 --tier 1 test_execd/
