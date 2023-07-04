@@ -1,5 +1,5 @@
 name: Engine Unit Test
-
+# this is a change
 # Controls when the action will run.
 on:
   # Triggers the workflow on pull request events but only for the engine base branch and with changes in the src/engine/ directory.
@@ -52,5 +52,4 @@ jobs:
     - name: Unit Test
       # Run unit tests using CTest
       working-directory: ${{env.ENGINE_DIR}}/build
-      run: ctest -C ${{env.BUILD_TYPE}} -T test --output-on-failure
-
+      run: sudo ctest -C ${{env.BUILD_TYPE}} -T test --output-on-failure  -j2
