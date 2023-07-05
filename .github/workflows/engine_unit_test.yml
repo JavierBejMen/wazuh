@@ -1,5 +1,5 @@
 name: Engine Unit Test
-
+# this is a change
 # Controls when the action will run.
 on:
   # Triggers the workflow on pull request events but only for the engine base branch and with changes in the src/engine/ directory.
@@ -52,5 +52,15 @@ jobs:
     - name: Unit Test
       # Run unit tests using CTest
       working-directory: ${{env.ENGINE_DIR}}/build
-      run: ctest -C ${{env.BUILD_TYPE}} -T test --output-on-failure
+      run: ctest -C ${{env.BUILD_TYPE}} --output-junit test-results.xml
 
+    - name: Rerun failed tests
+      working-directory: ${{env.ENGINE_DIR}}/build
+      run: ctest -C ${{env.BUILD_TYPE}} --rerun-failed --output-on-failure
+      if: always()
+
+    - name: Test Summary
+      uses: test-summary/action@v2
+      with:
+        paths: ${{env.ENGINE_DIR}}/build/test-results.xml
+      if: always()
